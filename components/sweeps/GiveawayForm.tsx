@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,8 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
   const [generatingDesc1, setGeneratingDesc1] = useState(false)
   const [generatingDesc2, setGeneratingDesc2] = useState(false)
   const [generatingImage, setGeneratingImage] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,6 +134,53 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
     } finally {
       setGeneratingImage(false)
     }
+  }
+
+  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('siteId', currentSite)
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload image')
+      }
+
+      const { imageUrl, message } = await response.json()
+
+      setFormData(prev => ({
+        ...prev,
+        hero_image: imageUrl,
+      }))
+
+      if (message) {
+        console.log('Image upload:', message)
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      alert(error.message || 'Failed to upload image. Please try again.')
+    } finally {
+      setUploadingImage(false)
+      // Reset the file input so the same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
   }
 
   return (
@@ -279,26 +328,54 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
               <label className="text-sm font-medium text-gray-700">
                 Hero Image URL
               </label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={generateImage}
-                disabled={generatingImage}
-                className="h-8 text-xs gap-1"
-              >
-                {generatingImage ? (
-                  <>Generating...</>
-                ) : (
-                  <>
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Generate Image
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUploadClick}
+                  disabled={uploadingImage || generatingImage}
+                  className="h-8 text-xs gap-1"
+                >
+                  {uploadingImage ? (
+                    <>Uploading...</>
+                  ) : (
+                    <>
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      Upload Image
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={generateImage}
+                  disabled={generatingImage || uploadingImage}
+                  className="h-8 text-xs gap-1"
+                >
+                  {generatingImage ? (
+                    <>Generating...</>
+                  ) : (
+                    <>
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Generate Image
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              onChange={uploadImage}
+              className="hidden"
+            />
             <Input
               type="url"
               value={formData.hero_image || ''}
