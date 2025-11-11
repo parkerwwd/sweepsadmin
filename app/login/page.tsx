@@ -16,16 +16,17 @@ export default function LoginPage() {
   const [debugInfo, setDebugInfo] = useState('')
   const [configStatus, setConfigStatus] = useState<string>('Checking...')
   const router = useRouter()
-  
-  // Initialize client
-  let supabase
-  try {
-    supabase = getAdminClient()
-    setConfigStatus('✅ Supabase connected')
-  } catch (err: any) {
-    setError('Configuration error: ' + err.message)
-    setConfigStatus('❌ Not configured')
-  }
+  const [supabase] = useState(() => {
+    try {
+      const client = getAdminClient()
+      setConfigStatus('✅ Supabase connected')
+      return client
+    } catch (err: any) {
+      setError('Configuration error: ' + err.message)
+      setConfigStatus('❌ Not configured')
+      return null
+    }
+  })
 
   useEffect(() => {
     // Check if already logged in
