@@ -55,20 +55,45 @@ function parsePrizeValue(prizeValue?: number | string) {
   return Number.isFinite(numeric) ? numeric : null
 }
 
+function derivePrizeHints(prizeName: string) {
+  const normalized = prizeName.toLowerCase()
+
+  if (normalized.includes('cash') || normalized.includes('money') || normalized.includes('usd') || normalized.includes('$')) {
+    return 'Incorporate subtle, tasteful cues of winning cash: crisp dollar bills, soft golden light, sophisticated financial accents.'
+  }
+
+  if (normalized.includes('gift') && normalized.includes('card')) {
+    return 'Include premium gift card elements: elegant cards with abstract branding, refined ribbon details, upscale retail ambiance.'
+  }
+
+  if (normalized.includes('trip') || normalized.includes('travel') || normalized.includes('vacation')) {
+    return 'Capture premium travel energy: dreamy destination lighting, luggage or airplane hints, luxurious getaway atmosphere.'
+  }
+
+  if (normalized.includes('car') || normalized.includes('vehicle')) {
+    return 'Suggest an automotive grand prize: sleek car silhouette, dramatic showroom lighting, modern metallic reflections.'
+  }
+
+  return 'Use modern celebratory cues that feel premium and trustworthy: confetti bokeh, elegant lighting, sophisticated prize symbolism.'
+}
+
 function generateImagePrompt(data: GiveawayData): string {
   const parsedValue = parsePrizeValue(data.prize_value)
   const prizeValue = parsedValue ? `$${parsedValue.toLocaleString()}` : ''
-  const prizeName = data.prize_name || data.title || 'cash prize'
-  
-  // Toned down, subtle prompts for professional look
-  const prompts = [
-    `Clean, professional website hero banner for ${prizeValue} ${prizeName} sweepstakes. Minimal style, soft pastel colors, simple and elegant. Subtle money or prize symbols in background. NO TEXT. Modern, understated, trustworthy design. Wide format.`,
-    `Simple professional banner image for ${prizeValue} ${prizeName} giveaway. Clean minimal design, soft colors, elegant and inviting. Subtle celebration theme without being dramatic. NO TEXT OVERLAY. Professional website header style.`,
-    `Elegant hero image for ${prizeValue} ${prizeName} contest. Minimalist professional style, soft warm colors, clean composition. Gentle prize theme, subtle and refined. NO WORDS. Modern website banner aesthetic.`,
-    `Professional website banner for ${prizeValue} ${prizeName}. Clean minimal design with soft color palette. Subtle money or gift elements, elegant and trustworthy look. NO TEXT in image. Simple, professional, inviting.`
-  ]
-  
-  return prompts[Math.floor(Math.random() * prompts.length)]
+  const prizeName = data.prize_name || data.title || 'premium prize'
+  const sponsor = data.sponsor_name ? `Primary brand tone: ${data.sponsor_name}.` : ''
+  const prizeHints = derivePrizeHints(prizeName)
+
+  return [
+    `Create a high-end, photorealistic hero image for a sweepstakes landing page.`,
+    `Prize: ${prizeValue ? `${prizeValue} ` : ''}${prizeName}.`,
+    sponsor,
+    prizeHints,
+    `Visual direction: modern commercial photography, cinematic lighting, shallow depth of field, vibrant yet refined color palette.`,
+    `Composition: wide hero banner framing with clear focal point, allow safe cropping to 16:9.`,
+    `Keep the scene realistic, inspiring, and professional—avoid clutter, cartoon styles, or cheesy clip art.`,
+    `Absolutely no text, lettering, logos, or watermarks in the image.`
+  ].filter(Boolean).join(' ')
 }
 
 export async function POST(request: NextRequest) {
