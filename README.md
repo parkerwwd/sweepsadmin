@@ -47,6 +47,9 @@ NEXT_PUBLIC_ADMIN_SUPABASE_ANON_KEY=your_admin_key
 
 # Admin Email Whitelist (comma-separated)
 NEXT_PUBLIC_ADMIN_EMAILS=parker@worldwidedigital.com
+
+# OpenAI API Key for DALL-E 3 image generation (optional - uses placeholder if not set)
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 ### 3. Run Development Server
