@@ -84,9 +84,11 @@ export async function POST(request: NextRequest) {
     
     const prompt = generateImagePrompt(giveawayData)
     const openaiKey = process.env.OPENAI_API_KEY?.trim()
+    const hasOpenAiKey = Boolean(openaiKey)
+    let openAiErrorMessage: string | null = null
     
     // Use OpenAI gpt-image-1 if API key is available
-    if (openaiKey) {
+    if (hasOpenAiKey && openaiKey) {
       try {
         console.log('Using OpenAI gpt-image-1 to generate image...')
         console.log('Prompt:', prompt)
@@ -145,6 +147,7 @@ export async function POST(request: NextRequest) {
           provider: 'openai-saved'
         })
       } catch (openaiError: any) {
+        openAiErrorMessage = openaiError?.message || openaiError?.toString?.() || 'Unknown OpenAI error'
         console.error('OpenAI generation failed:', openaiError)
         // Fall back to Picsum if OpenAI fails
       }
@@ -164,8 +167,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       imageUrl,
       prompt,
-      message: 'Using Picsum placeholder. Add OPENAI_API_KEY environment variable to enable gpt-image-1 image generation.',
-      provider: 'picsum'
+      message: hasOpenAiKey
+        ? `Using Picsum placeholder because gpt-image-1 failed: ${openAiErrorMessage ?? 'Unknown error'}`
+        : 'Using Picsum placeholder. Add OPENAI_API_KEY environment variable to enable gpt-image-1 image generation.',
+      provider: hasOpenAiKey ? 'openai-error' : 'picsum'
     })
   } catch (error) {
     console.error('Error generating image:', error)
