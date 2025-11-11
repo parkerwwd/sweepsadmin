@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sweeps Admin - Multi-Site Management Panel
 
-## Getting Started
+Centralized admin dashboard for managing giveaways, entries, and winners across multiple sweepstakes sites.
 
-First, run the development server:
+## Features
+
+- Manage multiple sweepstakes sites from one dashboard
+- Create and edit giveaways
+- View and export entries
+- Draw random winners
+- Cross-site analytics
+
+## Sites Managed
+
+- AnyTrivia Sweeps
+- Cooking Curiosity Sweeps
+- MarketGrow Sweeps
+
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment Variables
+
+Create `.env.local` with the following variables:
+
+```bash
+# AnyTrivia Sweeps
+NEXT_PUBLIC_ANYTRIVIA_SUPABASE_URL=your_anytrivia_url
+NEXT_PUBLIC_ANYTRIVIA_SUPABASE_ANON_KEY=your_anytrivia_key
+
+# Cooking Curiosity Sweeps  
+NEXT_PUBLIC_CCS_SUPABASE_URL=your_ccs_url
+NEXT_PUBLIC_CCS_SUPABASE_ANON_KEY=your_ccs_key
+
+# MarketGrow Sweeps
+NEXT_PUBLIC_MGS_SUPABASE_URL=your_mgs_url
+NEXT_PUBLIC_MGS_SUPABASE_ANON_KEY=your_mgs_key
+
+# Admin Auth (typically use AnyTrivia Supabase)
+NEXT_PUBLIC_ADMIN_SUPABASE_URL=your_admin_url
+NEXT_PUBLIC_ADMIN_SUPABASE_ANON_KEY=your_admin_key
+
+# Admin Email Whitelist (comma-separated)
+NEXT_PUBLIC_ADMIN_EMAILS=parker@worldwidedigital.com
+```
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Deploy to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+vercel
+```
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. Log in with your admin email
+2. Select a site from the dropdown
+3. Manage giveaways, view entries, draw winners
+4. Switch between sites as needed
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Supabase (multi-database connections)
+- shadcn/ui components
