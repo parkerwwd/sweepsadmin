@@ -15,53 +15,57 @@ export default function DashboardLayout({
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
-  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    if (!authChecked) {
-      checkAuth()
-    }
-  }, [authChecked])
-
-  const checkAuth = async () => {
-    try {
-      console.log('Dashboard: Checking auth...')
-      setAuthChecked(true) // Mark as checked to prevent repeated calls
-      
-      const supabase = getAdminClient()
-      const { data: { user }, error } = await supabase.auth.getUser()
-      
-      console.log('Dashboard: User check result:', { user: user?.email, error: error?.message })
-      
-      if (error || !user) {
-        console.log('Dashboard: No user or error, redirecting to login')
+    let mounted = true
+    
+    const checkAuth = async () => {
+      try {
+        console.log('Dashboard: Checking auth...')
+        
+        const supabase = getAdminClient()
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        console.log('Dashboard: User check result:', { user: user?.email, error: error?.message })
+        
+        if (!mounted) return // Component unmounted, don't update state
+        
+        if (error || !user) {
+          console.log('Dashboard: No user or error, redirecting to login')
+          // Don't set loading false, just redirect
+          window.location.replace('/login')
+          return
+        }
+        
+        // Check if user is in admin whitelist
+        const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()) || ['parker@worldwidedigital.com']
+        
+        console.log('Dashboard: Checking whitelist:', { userEmail: user.email, adminEmails })
+        
+        if (!adminEmails.includes(user.email || '')) {
+          console.log('Dashboard: User not in whitelist, signing out')
+          await supabase.auth.signOut()
+          window.location.replace('/login')
+          return
+        }
+        
+        console.log('Dashboard: Auth successful!')
+        setUser(user)
         setLoading(false)
-        window.location.href = '/login'
-        return
+      } catch (error) {
+        console.error('Dashboard: Auth check error:', error)
+        if (mounted) {
+          window.location.replace('/login')
+        }
       }
-      
-      // Check if user is in admin whitelist
-      const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()) || ['parker@worldwidedigital.com']
-      
-      console.log('Dashboard: Checking whitelist:', { userEmail: user.email, adminEmails })
-      
-      if (!adminEmails.includes(user.email || '')) {
-        console.log('Dashboard: User not in whitelist, signing out')
-        await supabase.auth.signOut()
-        setLoading(false)
-        window.location.href = '/login'
-        return
-      }
-      
-      console.log('Dashboard: Auth successful!')
-      setUser(user)
-      setLoading(false)
-    } catch (error) {
-      console.error('Dashboard: Auth check error:', error)
-      setLoading(false)
-      window.location.href = '/login'
     }
-  }
+    
+    checkAuth()
+    
+    return () => {
+      mounted = false
+    }
+  }, []) // Only run once on mount
 
   if (loading) {
     return (

@@ -30,29 +30,10 @@ export default function LoginPage() {
   })
 
   useEffect(() => {
-    // Check if already logged in (only once)
-    if (sessionChecked) return
-    
-    const checkSession = async () => {
-      if (!supabase) {
-        setSessionChecked(true)
-        return
-      }
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          console.log('Already logged in, redirecting to dashboard')
-          window.location.href = '/dashboard'
-        } else {
-          setSessionChecked(true)
-        }
-      } catch (err) {
-        console.error('Session check error:', err)
-        setSessionChecked(true)
-      }
-    }
-    checkSession()
-  }, [sessionChecked, supabase])
+    // Don't auto-redirect on login page - let user login manually
+    // This prevents redirect loops
+    setSessionChecked(true)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,8 +77,9 @@ export default function LoginPage() {
       }
 
       console.log('Auth successful, redirecting...')
-      // Use window.location to ensure cookies are properly set
-      window.location.href = '/dashboard'
+      // Use window.location.replace to avoid adding to history
+      // This prevents back button issues
+      window.location.replace('/dashboard')
     } catch (err: any) {
       console.error('Login error:', err)
       setError(err.message || 'Failed to sign in')
