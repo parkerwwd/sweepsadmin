@@ -35,14 +35,14 @@ export default function LoginPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          router.push('/dashboard')
+          window.location.href = '/dashboard'
         }
       } catch (err) {
         console.error('Session check error:', err)
       }
     }
     checkSession()
-  }, [router])
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,7 +86,8 @@ export default function LoginPage() {
       }
 
       console.log('Auth successful, redirecting...')
-      router.push('/dashboard')
+      // Use window.location to ensure cookies are properly set
+      window.location.href = '/dashboard'
     } catch (err: any) {
       console.error('Login error:', err)
       setError(err.message || 'Failed to sign in')
