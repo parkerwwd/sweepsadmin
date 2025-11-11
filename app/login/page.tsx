@@ -13,15 +13,31 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [debugInfo, setDebugInfo] = useState('')
+  const [configStatus, setConfigStatus] = useState<string>('Checking...')
   const router = useRouter()
-  const supabase = getAdminClient()
+  
+  // Initialize client
+  let supabase
+  try {
+    supabase = getAdminClient()
+    setConfigStatus('✅ Supabase connected')
+  } catch (err: any) {
+    setError('Configuration error: ' + err.message)
+    setConfigStatus('❌ Not configured')
+  }
 
   useEffect(() => {
     // Check if already logged in
     const checkSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        router.push('/dashboard')
+      if (!supabase) return
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          router.push('/dashboard')
+        }
+      } catch (err) {
+        console.error('Session check error:', err)
       }
     }
     checkSession()
@@ -31,26 +47,49 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setDebugInfo('')
+
+    if (!supabase) {
+      setError('Admin client not configured. Check environment variables.')
+      setLoading(false)
+      return
+    }
 
     try {
+      console.log('Attempting login for:', email)
+      
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (signInError) throw signInError
+      console.log('Login response:', { user: data?.user?.email, error: signInError?.message })
+
+      if (signInError) {
+        console.error('Sign in error:', signInError)
+        throw new Error(signInError.message)
+      }
+
+      if (!data.user) {
+        throw new Error('No user returned from authentication')
+      }
 
       // Check if user is authorized admin
       const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()) || ['parker@worldwidedigital.com']
       
-      if (!data.user || !adminEmails.includes(data.user.email || '')) {
+      console.log('Checking authorization:', { userEmail: data.user.email, adminEmails })
+      
+      if (!adminEmails.includes(data.user.email || '')) {
         await supabase.auth.signOut()
-        throw new Error('Unauthorized email address')
+        throw new Error(`Unauthorized: ${data.user.email} is not in the admin whitelist`)
       }
 
+      console.log('Auth successful, redirecting...')
       router.push('/dashboard')
     } catch (err: any) {
+      console.error('Login error:', err)
       setError(err.message || 'Failed to sign in')
+      setDebugInfo(`Email: ${email}, Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -74,7 +113,11 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
+                <p className="font-semibold">Error:</p>
+                <p>{error}</p>
+                {debugInfo && (
+                  <p className="text-xs mt-2 opacity-75">{debugInfo}</p>
+                )}
               </div>
             )}
             
@@ -109,10 +152,22 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg transition-all"
-              disabled={loading}
+              disabled={loading || !supabase}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
+
+            {/* Connection Status */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 text-center">
+                Connection Status: {configStatus}
+              </p>
+              {process.env.NODE_ENV === 'development' && (
+                <p className="text-xs text-gray-400 text-center mt-1">
+                  Admin Email Whitelist: {process.env.NEXT_PUBLIC_ADMIN_EMAILS || 'parker@worldwidedigital.com'}
+                </p>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
