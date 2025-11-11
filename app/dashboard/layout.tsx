@@ -22,10 +22,14 @@ export default function DashboardLayout({
 
   const checkAuth = async () => {
     try {
+      console.log('Dashboard: Checking auth...')
       const supabase = getAdminClient()
       const { data: { user }, error } = await supabase.auth.getUser()
       
+      console.log('Dashboard: User check result:', { user: user?.email, error: error?.message })
+      
       if (error || !user) {
+        console.log('Dashboard: No user or error, redirecting to login')
         router.push('/login')
         return
       }
@@ -33,16 +37,20 @@ export default function DashboardLayout({
       // Check if user is in admin whitelist
       const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()) || ['parker@worldwidedigital.com']
       
+      console.log('Dashboard: Checking whitelist:', { userEmail: user.email, adminEmails })
+      
       if (!adminEmails.includes(user.email || '')) {
+        console.log('Dashboard: User not in whitelist, signing out')
         await supabase.auth.signOut()
         router.push('/login')
         return
       }
       
+      console.log('Dashboard: Auth successful!')
       setUser(user)
       setLoading(false)
     } catch (error) {
-      console.error('Auth check error:', error)
+      console.error('Dashboard: Auth check error:', error)
       router.push('/login')
     }
   }
