@@ -40,6 +40,8 @@ export const SWEEPS_SITES: Record<SiteId, SweepsSite> = {
 
 // Cache clients to avoid creating new instances
 const clientCache: Partial<Record<SiteId, SupabaseClient>> = {}
+let adminClient: SupabaseClient | null = null
+let adminDummyClient: SupabaseClient | null = null
 
 export function getSweepsClient(siteId: SiteId): SupabaseClient {
   if (clientCache[siteId]) {
@@ -73,12 +75,19 @@ export function getAdminClient(): SupabaseClient {
   // During build time, return a dummy client if credentials missing
   if (!url || !key) {
     if (typeof window === 'undefined') {
-      // Build time - return dummy client
-      return createClient('https://placeholder.supabase.co', 'placeholder-key')
+      if (!adminDummyClient) {
+        // Build time - return dummy client
+        adminDummyClient = createClient('https://placeholder.supabase.co', 'placeholder-key')
+      }
+      return adminDummyClient
     }
     throw new Error('Missing admin Supabase credentials')
   }
   
-  return createClient(url, key)
+  if (!adminClient) {
+    adminClient = createClient(url, key)
+  }
+
+  return adminClient
 }
 
