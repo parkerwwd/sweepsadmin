@@ -70,6 +70,16 @@ export default function WinnersPage() {
     }
   }
 
+  const getActualStatus = (giveaway: Giveaway) => {
+    const now = new Date()
+    const endDate = new Date(giveaway.end_date)
+    const startDate = new Date(giveaway.start_date)
+    
+    if (now < startDate) return 'Scheduled'
+    if (now > endDate) return 'Ended'
+    return 'Active'
+  }
+
   const drawWinner = async () => {
     if (!selectedGiveaway) {
       alert('Please select a giveaway first')
@@ -180,11 +190,14 @@ export default function WinnersPage() {
                     No giveaways found
                   </div>
                 ) : (
-                  giveaways.map(giveaway => (
-                    <SelectItem key={giveaway.id} value={giveaway.id}>
-                      {giveaway.title} {!giveaway.is_active && '(Ended)'}
-                    </SelectItem>
-                  ))
+                  giveaways.map(giveaway => {
+                    const status = getActualStatus(giveaway)
+                    return (
+                      <SelectItem key={giveaway.id} value={giveaway.id}>
+                        {giveaway.title} {status !== 'Active' && `(${status})`}
+                      </SelectItem>
+                    )
+                  })
                 )}
               </SelectContent>
             </Select>
