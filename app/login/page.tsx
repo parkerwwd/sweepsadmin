@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [debugInfo, setDebugInfo] = useState('')
   const [configStatus, setConfigStatus] = useState<string>('Checking...')
+  const [sessionChecked, setSessionChecked] = useState(false)
   const router = useRouter()
   const [supabase] = useState(() => {
     try {
@@ -29,20 +30,29 @@ export default function LoginPage() {
   })
 
   useEffect(() => {
-    // Check if already logged in
+    // Check if already logged in (only once)
+    if (sessionChecked) return
+    
     const checkSession = async () => {
-      if (!supabase) return
+      if (!supabase) {
+        setSessionChecked(true)
+        return
+      }
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
+          console.log('Already logged in, redirecting to dashboard')
           window.location.href = '/dashboard'
+        } else {
+          setSessionChecked(true)
         }
       } catch (err) {
         console.error('Session check error:', err)
+        setSessionChecked(true)
       }
     }
     checkSession()
-  }, [])
+  }, [sessionChecked, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
