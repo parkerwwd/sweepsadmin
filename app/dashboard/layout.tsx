@@ -15,14 +15,19 @@ export default function DashboardLayout({
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    checkAuth()
-  }, [])
+    if (!authChecked) {
+      checkAuth()
+    }
+  }, [authChecked])
 
   const checkAuth = async () => {
     try {
       console.log('Dashboard: Checking auth...')
+      setAuthChecked(true) // Mark as checked to prevent repeated calls
+      
       const supabase = getAdminClient()
       const { data: { user }, error } = await supabase.auth.getUser()
       
@@ -30,7 +35,8 @@ export default function DashboardLayout({
       
       if (error || !user) {
         console.log('Dashboard: No user or error, redirecting to login')
-        router.push('/login')
+        setLoading(false)
+        window.location.href = '/login'
         return
       }
       
@@ -42,7 +48,8 @@ export default function DashboardLayout({
       if (!adminEmails.includes(user.email || '')) {
         console.log('Dashboard: User not in whitelist, signing out')
         await supabase.auth.signOut()
-        router.push('/login')
+        setLoading(false)
+        window.location.href = '/login'
         return
       }
       
@@ -51,7 +58,8 @@ export default function DashboardLayout({
       setLoading(false)
     } catch (error) {
       console.error('Dashboard: Auth check error:', error)
-      router.push('/login')
+      setLoading(false)
+      window.location.href = '/login'
     }
   }
 
