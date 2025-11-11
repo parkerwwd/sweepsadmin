@@ -303,17 +303,27 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
               placeholder="https://example.com/image.jpg"
               className="h-11"
             />
-            {formData.hero_image && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-500 mb-1.5">Preview:</p>
-                <img 
-                  src={formData.hero_image} 
-                  alt="Hero preview" 
-                  className="w-48 h-28 object-cover rounded-md border-2 border-gray-200 shadow-sm"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
+            {formData.hero_image && formData.hero_image.trim() !== '' && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2 font-medium">Preview:</p>
+                <div className="relative inline-block">
+                  <img 
+                    src={formData.hero_image} 
+                    alt="Hero preview" 
+                    className="w-64 h-36 object-cover rounded-lg border-2 border-gray-300 shadow-md"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-64 h-36 bg-red-50 border-2 border-red-200 rounded-lg flex items-center justify-center text-red-600 text-sm">Failed to load image</div>'
+                      }
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', formData.hero_image)
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
