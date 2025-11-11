@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
           quality: 'standard', // Use 'hd' for higher quality but costs more
         })
         
-        const imageUrl = response.data[0]?.url
+        const imageUrl = response.data?.[0]?.url
         
         if (!imageUrl) {
           throw new Error('No image URL returned from OpenAI')
