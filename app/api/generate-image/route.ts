@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
+import { Buffer } from 'node:buffer'
+
+export const runtime = 'nodejs'
 
 interface GiveawayData {
   title?: string
@@ -39,8 +42,22 @@ function getSiteSupabaseClient(siteId: string) {
   return createClient(config.url, config.key)
 }
 
+function parsePrizeValue(prizeValue?: number | string) {
+  if (prizeValue === undefined || prizeValue === null) {
+    return null
+  }
+
+  if (typeof prizeValue === 'number') {
+    return Number.isFinite(prizeValue) ? prizeValue : null
+  }
+
+  const numeric = Number.parseFloat(prizeValue.replace(/[^0-9.]/g, ''))
+  return Number.isFinite(numeric) ? numeric : null
+}
+
 function generateImagePrompt(data: GiveawayData): string {
-  const prizeValue = data.prize_value ? `$${Number(data.prize_value).toLocaleString()}` : ''
+  const parsedValue = parsePrizeValue(data.prize_value)
+  const prizeValue = parsedValue ? `$${parsedValue.toLocaleString()}` : ''
   const prizeName = data.prize_name || data.title || 'cash prize'
   
   // Toned down, subtle prompts for professional look
@@ -66,52 +83,28 @@ export async function POST(request: NextRequest) {
     }
     
     const prompt = generateImagePrompt(giveawayData)
-    const openaiKey = process.env.OPENAI_API_KEY
+    const openaiKey = process.env.OPENAI_API_KEY?.trim()
     
     // Use OpenAI gpt-image-1 if API key is available
     if (openaiKey) {
       try {
         console.log('Using OpenAI gpt-image-1 to generate image...')
         console.log('Prompt:', prompt)
-        
-        // Use raw REST API instead of SDK for gpt-image-1
-        const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-image-1',
-            prompt: prompt,
-            n: 1,
-            size: '1024x1024',
-          }),
+
+        const openai = new OpenAI({ apiKey: openaiKey })
+        const openaiData = await openai.images.generate({
+          model: 'gpt-image-1',
+          prompt,
+          size: '1024x1024',
+          response_format: 'b64_json',
         })
-        
-        if (!openaiResponse.ok) {
-          const errorData = await openaiResponse.json()
-          console.error('OpenAI API error response:', {
-            status: openaiResponse.status,
-            statusText: openaiResponse.statusText,
-            error: errorData
-          })
-          throw new Error(`OpenAI API Error (${openaiResponse.status}): ${errorData.error?.message || 'Request failed'}`)
+
+        const imageBase64 = openaiData.data?.[0]?.b64_json
+        if (!imageBase64) {
+          throw new Error('No image data returned from OpenAI')
         }
-        
-        const openaiData = await openaiResponse.json()
-        const tempImageUrl = openaiData.data?.[0]?.url
-        
-        if (!tempImageUrl) {
-          throw new Error('No image URL returned from OpenAI')
-        }
-        
-        console.log('gpt-image-1 generated successfully, now saving to Supabase...')
-        
-        // Download the image from OpenAI
-        const imageResponse = await fetch(tempImageUrl)
-        const imageBuffer = await imageResponse.arrayBuffer()
-        const imageBlob = new Uint8Array(imageBuffer)
+
+        const imageBuffer = Buffer.from(imageBase64, 'base64')
         
         // Generate unique filename
         const timestamp = Date.now()
@@ -119,9 +112,9 @@ export async function POST(request: NextRequest) {
         
         // Upload to Supabase Storage
         const supabase = getSiteSupabaseClient(siteId)
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('giveaway-images')
-          .upload(filename, imageBlob, {
+          .upload(filename, imageBuffer, {
             contentType: 'image/png',
             cacheControl: '3600',
             upsert: false
@@ -131,9 +124,9 @@ export async function POST(request: NextRequest) {
           console.error('Supabase upload error:', uploadError)
           // Return temporary URL if upload fails
           return NextResponse.json({ 
-            imageUrl: tempImageUrl,
+            imageUrl: `data:image/png;base64,${imageBase64}`,
             prompt,
-            message: 'Generated with DALL-E 3 (temporary URL - Supabase upload failed)',
+            message: 'Generated with gpt-image-1 (base64 URL - Supabase upload failed)',
             provider: 'openai-temp'
           })
         }
@@ -148,11 +141,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           imageUrl: publicUrl,
           prompt,
-          message: 'Generated with DALL-E 3 and saved to Supabase Storage',
+          message: 'Generated with gpt-image-1 and saved to Supabase Storage',
           provider: 'openai-saved'
         })
       } catch (openaiError: any) {
-        console.error('OpenAI generation failed:', openaiError.message)
+        console.error('OpenAI generation failed:', openaiError)
         // Fall back to Picsum if OpenAI fails
       }
     }
@@ -160,9 +153,10 @@ export async function POST(request: NextRequest) {
     // Fallback: Use Picsum placeholder if no OpenAI key or if OpenAI fails
     console.log('Using Picsum placeholder image')
     
+    const seedBaseValue = parsePrizeValue(giveawayData.prize_value) ?? 0
     const seed = Math.abs(
       (giveawayData.title?.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0) +
-      Number(giveawayData.prize_value || 0)
+      seedBaseValue
     )
     
     const imageUrl = `https://picsum.photos/seed/${seed}/1200/630`
@@ -170,7 +164,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       imageUrl,
       prompt,
-      message: 'Using Picsum placeholder. Add OPENAI_API_KEY environment variable to use DALL-E 3 for custom AI images.',
+      message: 'Using Picsum placeholder. Add OPENAI_API_KEY environment variable to enable gpt-image-1 image generation.',
       provider: 'picsum'
     })
   } catch (error) {
