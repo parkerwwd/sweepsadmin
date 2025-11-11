@@ -91,8 +91,12 @@ export async function POST(request: NextRequest) {
         
         if (!openaiResponse.ok) {
           const errorData = await openaiResponse.json()
-          console.error('OpenAI API error:', errorData)
-          throw new Error(errorData.error?.message || 'OpenAI API request failed')
+          console.error('OpenAI API error response:', {
+            status: openaiResponse.status,
+            statusText: openaiResponse.statusText,
+            error: errorData
+          })
+          throw new Error(`OpenAI API Error (${openaiResponse.status}): ${errorData.error?.message || 'Request failed'}`)
         }
         
         const openaiData = await openaiResponse.json()
