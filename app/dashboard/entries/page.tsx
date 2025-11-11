@@ -56,22 +56,50 @@ export default function EntriesPage() {
     try {
       const client = getSweepsClient(currentSite)
       
-      let query = client
+      // First get entries with count
+      let countQuery = client
         .from('entries')
-        .select('*, giveaways(*)', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
+      
+      if (filterGiveaway !== 'all') {
+        countQuery = countQuery.eq('giveaway_id', filterGiveaway)
+      }
+      
+      const { count } = await countQuery
+      setTotalCount(count || 0)
+      
+      // Then get entries with giveaway details
+      let dataQuery = client
+        .from('entries')
+        .select('*')
         .order('created_at', { ascending: false })
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1)
       
       if (filterGiveaway !== 'all') {
-        query = query.eq('giveaway_id', filterGiveaway)
+        dataQuery = dataQuery.eq('giveaway_id', filterGiveaway)
       }
       
-      const { data, count, error } = await query
+      const { data: entriesData, error } = await dataQuery
       
       if (error) throw error
       
-      setEntries(data as any || [])
-      setTotalCount(count || 0)
+      // Manually fetch giveaway details for each entry
+      const entriesWithGiveaways = await Promise.all(
+        (entriesData || []).map(async (entry) => {
+          const { data: giveaway } = await client
+            .from('giveaways')
+            .select('*')
+            .eq('id', entry.giveaway_id)
+            .single()
+          
+          return {
+            ...entry,
+            giveaway: giveaway
+          }
+        })
+      )
+      
+      setEntries(entriesWithGiveaways)
     } catch (error) {
       console.error('Error fetching entries:', error)
     } finally {
@@ -88,7 +116,7 @@ export default function EntriesPage() {
     const headers = ['Email', 'Giveaway', 'Confirmation Number', 'Entry Date', 'IP Address']
     const rows = filteredEntries.map(entry => [
       entry.email,
-      (entry.giveaway as any)?.title || 'Unknown',
+      entry.giveaway?.title || 'Unknown',
       entry.confirmation_number,
       new Date(entry.created_at).toLocaleString(),
       entry.ip_address || 'N/A',
@@ -223,7 +251,7 @@ export default function EntriesPage() {
                       <span className="font-medium">{entry.email}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm">{(entry.giveaway as any)?.title || 'N/A'}</span>
+                      <span className="text-sm">{entry.giveaway?.title || 'Unknown Giveaway'}</span>
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm font-mono">{entry.confirmation_number}</span>
