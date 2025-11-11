@@ -77,10 +77,11 @@ export async function POST(request: NextRequest) {
         const openai = new OpenAI({ apiKey: openaiKey })
         
         const response = await openai.images.generate({
-          model: 'gpt-image-1',
+          model: 'dall-e-3',
           prompt: prompt,
           n: 1,
-          size: '1024x1024', // gpt-image-1 supports 1024x1024
+          size: '1024x1024', // Square format
+          quality: 'standard',
         })
         
         const tempImageUrl = response.data?.[0]?.url
