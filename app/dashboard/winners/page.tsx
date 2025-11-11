@@ -34,12 +34,17 @@ export default function WinnersPage() {
   const fetchGiveaways = async () => {
     try {
       const client = getSweepsClient(currentSite)
-      const { data } = await client
+      const { data, error } = await client
         .from('giveaways')
         .select('*')
-        .eq('is_active', true)
-        .order('end_date', { ascending: true })
+        .order('end_date', { ascending: false })
       
+      if (error) {
+        console.error('Error fetching giveaways:', error)
+        return
+      }
+      
+      console.log('Fetched giveaways for winners:', data?.length || 0)
       setGiveaways(data || [])
     } catch (error) {
       console.error('Error fetching giveaways:', error)
@@ -170,11 +175,17 @@ export default function WinnersPage() {
                 <SelectValue placeholder="Choose a giveaway..." />
               </SelectTrigger>
               <SelectContent>
-                {giveaways.map(giveaway => (
-                  <SelectItem key={giveaway.id} value={giveaway.id}>
-                    {giveaway.title}
-                  </SelectItem>
-                ))}
+                {giveaways.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">
+                    No giveaways found
+                  </div>
+                ) : (
+                  giveaways.map(giveaway => (
+                    <SelectItem key={giveaway.id} value={giveaway.id}>
+                      {giveaway.title} {!giveaway.is_active && '(Ended)'}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
