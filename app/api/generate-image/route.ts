@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
 interface GiveawayData {
   title?: string
@@ -11,12 +12,11 @@ function generateImagePrompt(data: GiveawayData): string {
   const prizeValue = data.prize_value ? `$${Number(data.prize_value).toLocaleString()}` : ''
   const prizeName = data.prize_name || data.title || 'cash prize'
   
-  // Create a compelling image prompt
+  // Optimized prompt for DALL-E 3
   const prompts = [
-    `Professional sweepstakes promotional image featuring ${prizeValue} ${prizeName}. Modern, clean design with exciting colors. High quality, eye-catching, professional marketing style. Include symbolic representations of money, prizes, or celebration. Vibrant and appealing.`,
-    `Eye-catching giveaway hero image for ${prizeValue} ${prizeName}. Professional marketing quality, bright and inviting colors, symbols of winning and success. Clean modern design, no text overlay needed. High-resolution promotional photography style.`,
-    `Stunning promotional banner for ${prizeValue} ${prizeName} sweepstakes. Professional quality with exciting visual elements suggesting prizes, rewards, and winning. Modern advertising style, vibrant colors, clean composition. Marketing-grade quality.`,
-    `Premium sweepstakes header image featuring ${prizeValue} ${prizeName} concept. Professional advertising photography with symbols of prizes, cash, and celebration. Bright, exciting, modern design. High-quality marketing material style.`
+    `Professional sweepstakes hero banner image, wide format. Theme: ${prizeValue} ${prizeName} giveaway. Style: modern marketing, bright exciting colors, symbols of winning and prizes. NO TEXT in image. High quality promotional banner style. Vibrant, eye-catching, professional.`,
+    `Wide marketing banner for ${prizeValue} ${prizeName} sweepstakes. Professional advertising photography with cash, prizes, celebration theme. Exciting colors, modern clean design. NO TEXT OVERLAY. High-end promotional image quality.`,
+    `Hero image for ${prizeValue} ${prizeName} contest. Professional banner style, wide format. Bright inviting colors with symbols of winning, money, rewards. Clean modern composition. NO WORDS OR TEXT. Marketing photography quality.`
   ]
   
   return prompts[Math.floor(Math.random() * prompts.length)]
@@ -33,27 +33,60 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Generate image using a placeholder service for now
-    // In production, you'd integrate with DALL-E, Midjourney, or similar
     const prompt = generateImagePrompt(giveawayData)
+    const openaiKey = process.env.OPENAI_API_KEY
     
-    // For now, use Picsum (Lorem Picsum) for reliable placeholder images
-    // This always works and doesn't have CORS issues
-    // You can replace this with actual AI generation (DALL-E, Stable Diffusion, etc.)
+    // Use OpenAI DALL-E if API key is available
+    if (openaiKey) {
+      try {
+        console.log('Using OpenAI DALL-E 3 to generate image...')
+        console.log('Prompt:', prompt)
+        
+        const openai = new OpenAI({ apiKey: openaiKey })
+        
+        const response = await openai.images.generate({
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1792x1024', // Wide format for hero images
+          quality: 'standard', // Use 'hd' for higher quality but costs more
+        })
+        
+        const imageUrl = response.data[0]?.url
+        
+        if (!imageUrl) {
+          throw new Error('No image URL returned from OpenAI')
+        }
+        
+        console.log('OpenAI image generated successfully')
+        
+        return NextResponse.json({ 
+          imageUrl,
+          prompt,
+          message: 'Generated with DALL-E 3',
+          provider: 'openai'
+        })
+      } catch (openaiError: any) {
+        console.error('OpenAI generation failed:', openaiError.message)
+        // Fall back to Picsum if OpenAI fails
+      }
+    }
     
-    // Generate a random seed based on giveaway data for consistency
+    // Fallback: Use Picsum placeholder if no OpenAI key or if OpenAI fails
+    console.log('Using Picsum placeholder image')
+    
     const seed = Math.abs(
-      (giveawayData.title?.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0) +
+      (giveawayData.title?.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0) +
       Number(giveawayData.prize_value || 0)
     )
     
-    // Use Picsum with seed for consistent random images
     const imageUrl = `https://picsum.photos/seed/${seed}/1200/630`
     
     return NextResponse.json({ 
       imageUrl,
-      prompt, // Return the prompt so you can use it with actual AI later
-      message: 'Using Picsum placeholder. You can integrate with DALL-E API for custom AI-generated images by adding OPENAI_API_KEY to environment variables.'
+      prompt,
+      message: 'Using Picsum placeholder. Add OPENAI_API_KEY environment variable to use DALL-E 3 for custom AI images.',
+      provider: 'picsum'
     })
   } catch (error) {
     console.error('Error generating image:', error)
