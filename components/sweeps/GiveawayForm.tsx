@@ -30,6 +30,7 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
   const [submitting, setSubmitting] = useState(false)
   const [generatingDesc1, setGeneratingDesc1] = useState(false)
   const [generatingDesc2, setGeneratingDesc2] = useState(false)
+  const [generatingImage, setGeneratingImage] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,6 +86,48 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
       alert('Failed to generate description. Please try again.')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const generateImage = async () => {
+    // Validate that we have basic info
+    if (!formData.title || !formData.prize_value) {
+      alert('Please fill in the Title and Prize Value fields first')
+      return
+    }
+
+    setGeneratingImage(true)
+    
+    try {
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          giveawayData: formData,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate image')
+      }
+      
+      const { imageUrl, message } = await response.json()
+      
+      setFormData(prev => ({
+        ...prev,
+        hero_image: imageUrl,
+      }))
+      
+      if (message) {
+        console.log('Image generation:', message)
+      }
+    } catch (error) {
+      console.error('Error generating image:', error)
+      alert('Failed to generate image. Please try again.')
+    } finally {
+      setGeneratingImage(false)
     }
   }
 
@@ -229,9 +272,30 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Hero Image URL
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Hero Image URL
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={generateImage}
+                disabled={generatingImage}
+                className="h-8 text-xs gap-1"
+              >
+                {generatingImage ? (
+                  <>Generating...</>
+                ) : (
+                  <>
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Generate Image
+                  </>
+                )}
+              </Button>
+            </div>
             <Input
               type="url"
               value={formData.hero_image || ''}
@@ -239,6 +303,18 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
               placeholder="https://example.com/image.jpg"
               className="h-11"
             />
+            {formData.hero_image && (
+              <div className="mt-3">
+                <img 
+                  src={formData.hero_image} 
+                  alt="Hero preview" 
+                  className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
