@@ -98,15 +98,64 @@ export async function POST(request: NextRequest) {
           model: 'gpt-image-1',
           prompt,
           size: '1024x1024',
-          response_format: 'b64_json',
+          quality: 'high',
+          background: 'transparent'
         })
 
-        const imageBase64 = openaiData.data?.[0]?.b64_json
-        if (!imageBase64) {
+        const imageB64 = openaiData.data?.[0]?.b64_json
+        const imageUrlFromOpenAi = openaiData.data?.[0]?.url
+
+        if (!imageB64) {
+          if (imageUrlFromOpenAi) {
+            console.log('OpenAI returned hosted image URL, downloading...')
+            const imageResponse = await fetch(imageUrlFromOpenAi)
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to download OpenAI image: ${imageResponse.status} ${imageResponse.statusText}`)
+            }
+
+            const arrayBuffer = await imageResponse.arrayBuffer()
+            const buffer = Buffer.from(arrayBuffer)
+
+            const timestamp = Date.now()
+            const filename = `giveaway-${timestamp}-${Math.random().toString(36).substring(7)}.png`
+
+            const supabase = getSiteSupabaseClient(siteId)
+            const { error: uploadError } = await supabase.storage
+              .from('giveaway-images')
+              .upload(filename, buffer, {
+                contentType: 'image/png',
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (uploadError) {
+              console.error('Supabase upload error (URL flow):', uploadError)
+              return NextResponse.json({
+                imageUrl: imageUrlFromOpenAi,
+                prompt,
+                message: 'Generated with gpt-image-1 (temporary URL - Supabase upload failed)',
+                provider: 'openai-temp-url'
+              })
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('giveaway-images')
+              .getPublicUrl(filename)
+
+            console.log('Image saved to Supabase successfully (URL flow):', publicUrl)
+
+            return NextResponse.json({
+              imageUrl: publicUrl,
+              prompt,
+              message: 'Generated with gpt-image-1 and saved to Supabase Storage',
+              provider: 'openai-saved'
+            })
+          }
+
           throw new Error('No image data returned from OpenAI')
         }
 
-        const imageBuffer = Buffer.from(imageBase64, 'base64')
+        const imageBuffer = Buffer.from(imageB64, 'base64')
         
         // Generate unique filename
         const timestamp = Date.now()
@@ -125,8 +174,8 @@ export async function POST(request: NextRequest) {
         if (uploadError) {
           console.error('Supabase upload error:', uploadError)
           // Return temporary URL if upload fails
-          return NextResponse.json({ 
-            imageUrl: `data:image/png;base64,${imageBase64}`,
+          return NextResponse.json({
+            imageUrl: `data:image/png;base64,${imageB64}`,
             prompt,
             message: 'Generated with gpt-image-1 (base64 URL - Supabase upload failed)',
             provider: 'openai-temp'
