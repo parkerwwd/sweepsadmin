@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Giveaway } from '@/lib/types'
+import { useSite } from './SiteContext'
 
 interface GiveawayFormProps {
   giveaway?: Partial<Giveaway>
@@ -13,6 +14,7 @@ interface GiveawayFormProps {
 }
 
 export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps) {
+  const { currentSite } = useSite()
   const [formData, setFormData] = useState<Partial<Giveaway>>({
     title: giveaway?.title || '',
     prize_name: giveaway?.prize_name || '',
@@ -99,11 +101,6 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
     setGeneratingImage(true)
     
     try {
-      // Get current site from context
-      const siteId = window.location.pathname.includes('anytrivia') ? 'anytrivia' : 
-                     window.location.pathname.includes('ccs') ? 'ccs' : 
-                     window.location.pathname.includes('mgs') ? 'mgs' : 'anytrivia'
-      
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
@@ -111,7 +108,7 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
         },
         body: JSON.stringify({
           giveawayData: formData,
-          siteId: siteId,
+          siteId: currentSite,
         }),
       })
       
