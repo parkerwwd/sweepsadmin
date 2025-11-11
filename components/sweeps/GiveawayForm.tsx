@@ -17,8 +17,8 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
     title: giveaway?.title || '',
     prize_name: giveaway?.prize_name || '',
     prize_value: giveaway?.prize_value || null,
-    start_date: giveaway?.start_date || new Date().toISOString().split('T')[0],
-    end_date: giveaway?.end_date || '',
+    start_date: giveaway?.start_date ? giveaway.start_date.split('T')[0] : new Date().toISOString().split('T')[0],
+    end_date: giveaway?.end_date ? giveaway.end_date.split('T')[0] : '',
     max_entries_per_day: giveaway?.max_entries_per_day || 1,
     is_active: giveaway?.is_active ?? true,
     slug: giveaway?.slug || '',
@@ -28,6 +28,8 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
     sponsor_name: giveaway?.sponsor_name || '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [generatingDesc1, setGeneratingDesc1] = useState(false)
+  const [generatingDesc2, setGeneratingDesc2] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +46,46 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const generateDescription = async (type: 'description_1' | 'description_2') => {
+    // Validate that we have basic info needed for generation
+    if (!formData.title || !formData.prize_value) {
+      alert('Please fill in the Title and Prize Value fields first')
+      return
+    }
+
+    const setGenerating = type === 'description_1' ? setGeneratingDesc1 : setGeneratingDesc2
+    setGenerating(true)
+    
+    try {
+      const response = await fetch('/api/generate-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type,
+          giveawayData: formData,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate description')
+      }
+      
+      const { description } = await response.json()
+      
+      setFormData(prev => ({
+        ...prev,
+        [type]: description,
+      }))
+    } catch (error) {
+      console.error('Error generating description:', error)
+      alert('Failed to generate description. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -208,9 +250,30 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Description 1
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Description 1
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => generateDescription('description_1')}
+                disabled={generatingDesc1}
+                className="h-8 text-xs gap-1"
+              >
+                {generatingDesc1 ? (
+                  <>Generating...</>
+                ) : (
+                  <>
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            </div>
             <textarea
               value={formData.description_1 || ''}
               onChange={(e) => handleChange('description_1', e.target.value)}
@@ -221,9 +284,30 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Description 2
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Description 2
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => generateDescription('description_2')}
+                disabled={generatingDesc2}
+                className="h-8 text-xs gap-1"
+              >
+                {generatingDesc2 ? (
+                  <>Generating...</>
+                ) : (
+                  <>
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Generate with AI
+                  </>
+                )}
+              </Button>
+            </div>
             <textarea
               value={formData.description_2 || ''}
               onChange={(e) => handleChange('description_2', e.target.value)}
