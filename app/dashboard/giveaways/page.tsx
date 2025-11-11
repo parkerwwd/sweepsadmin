@@ -108,6 +108,17 @@ export default function GiveawaysPage() {
     }).format(value)
   }
 
+  const getActualStatus = (giveaway: Giveaway) => {
+    const now = new Date()
+    const endDate = new Date(giveaway.end_date)
+    const startDate = new Date(giveaway.start_date)
+    
+    // Check actual dates, not just is_active flag
+    if (now < startDate) return 'scheduled'
+    if (now > endDate) return 'ended'
+    return 'active'
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -200,9 +211,16 @@ export default function GiveawaysPage() {
                       <span className="font-medium">{formatPrizeValue(giveaway.prize_value)}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant={giveaway.is_active ? 'default' : 'secondary'} className={giveaway.is_active ? 'bg-green-100 text-green-700' : ''}>
-                        {giveaway.is_active ? 'Active' : 'Ended'}
-                      </Badge>
+                      {(() => {
+                        const status = getActualStatus(giveaway)
+                        if (status === 'active') {
+                          return <Badge className="bg-green-100 text-green-700">Active</Badge>
+                        } else if (status === 'scheduled') {
+                          return <Badge className="bg-blue-100 text-blue-700">Scheduled</Badge>
+                        } else {
+                          return <Badge variant="secondary">Ended</Badge>
+                        }
+                      })()}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-600">
