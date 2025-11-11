@@ -37,17 +37,23 @@ export async function POST(request: NextRequest) {
     // In production, you'd integrate with DALL-E, Midjourney, or similar
     const prompt = generateImagePrompt(giveawayData)
     
-    // For now, return a Unsplash placeholder image with relevant keywords
+    // For now, use Picsum (Lorem Picsum) for reliable placeholder images
+    // This always works and doesn't have CORS issues
     // You can replace this with actual AI generation (DALL-E, Stable Diffusion, etc.)
-    const keywords = giveawayData.prize_name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'money-cash-prize'
     
-    // Use Unsplash's random image API with relevant keywords
-    const imageUrl = `https://source.unsplash.com/1200x630/?${keywords},sweepstakes,winner,prize`
+    // Generate a random seed based on giveaway data for consistency
+    const seed = Math.abs(
+      (giveawayData.title?.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0) +
+      Number(giveawayData.prize_value || 0)
+    )
+    
+    // Use Picsum with seed for consistent random images
+    const imageUrl = `https://picsum.photos/seed/${seed}/1200/630`
     
     return NextResponse.json({ 
       imageUrl,
       prompt, // Return the prompt so you can use it with actual AI later
-      message: 'Using Unsplash placeholder. Integrate with DALL-E or similar for custom AI images.'
+      message: 'Using Picsum placeholder. You can integrate with DALL-E API for custom AI-generated images by adding OPENAI_API_KEY to environment variables.'
     })
   } catch (error) {
     console.error('Error generating image:', error)
