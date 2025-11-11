@@ -99,6 +99,11 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
     setGeneratingImage(true)
     
     try {
+      // Get current site from context
+      const siteId = window.location.pathname.includes('anytrivia') ? 'anytrivia' : 
+                     window.location.pathname.includes('ccs') ? 'ccs' : 
+                     window.location.pathname.includes('mgs') ? 'mgs' : 'anytrivia'
+      
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
@@ -106,6 +111,7 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
         },
         body: JSON.stringify({
           giveawayData: formData,
+          siteId: siteId,
         }),
       })
       
