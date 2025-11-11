@@ -68,29 +68,41 @@ export async function POST(request: NextRequest) {
     const prompt = generateImagePrompt(giveawayData)
     const openaiKey = process.env.OPENAI_API_KEY
     
-    // Use OpenAI DALL-E if API key is available
+    // Use OpenAI gpt-image-1 if API key is available
     if (openaiKey) {
       try {
-        console.log('Using OpenAI DALL-E 3 to generate image...')
+        console.log('Using OpenAI gpt-image-1 to generate image...')
         console.log('Prompt:', prompt)
         
-        const openai = new OpenAI({ apiKey: openaiKey })
-        
-        const response = await openai.images.generate({
-          model: 'dall-e-3',
-          prompt: prompt,
-          n: 1,
-          size: '1024x1024', // Square format
-          quality: 'standard',
+        // Use raw REST API instead of SDK for gpt-image-1
+        const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-image-1',
+            prompt: prompt,
+            n: 1,
+            size: '1024x1024',
+          }),
         })
         
-        const tempImageUrl = response.data?.[0]?.url
+        if (!openaiResponse.ok) {
+          const errorData = await openaiResponse.json()
+          console.error('OpenAI API error:', errorData)
+          throw new Error(errorData.error?.message || 'OpenAI API request failed')
+        }
+        
+        const openaiData = await openaiResponse.json()
+        const tempImageUrl = openaiData.data?.[0]?.url
         
         if (!tempImageUrl) {
           throw new Error('No image URL returned from OpenAI')
         }
         
-        console.log('OpenAI image generated, now saving to Supabase...')
+        console.log('gpt-image-1 generated successfully, now saving to Supabase...')
         
         // Download the image from OpenAI
         const imageResponse = await fetch(tempImageUrl)
