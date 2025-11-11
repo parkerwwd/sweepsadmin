@@ -304,11 +304,12 @@ export function GiveawayForm({ giveaway, onSubmit, onCancel }: GiveawayFormProps
               className="h-11"
             />
             {formData.hero_image && (
-              <div className="mt-3">
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1.5">Preview:</p>
                 <img 
                   src={formData.hero_image} 
                   alt="Hero preview" 
-                  className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                  className="w-48 h-28 object-cover rounded-md border-2 border-gray-200 shadow-sm"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none'
                   }}
