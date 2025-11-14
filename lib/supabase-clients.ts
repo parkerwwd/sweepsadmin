@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-export type SiteId = 'anytrivia' | 'ccs' | 'mgs'
+export type SiteId = 'anytrivia' | 'ccs' | 'mgs' | 'triviabright'
 
 export interface SweepsSite {
   id: SiteId
@@ -35,6 +35,14 @@ export const SWEEPS_SITES: Record<SiteId, SweepsSite> = {
     color: 'teal',
     supabaseUrl: process.env.NEXT_PUBLIC_MGS_SUPABASE_URL || '',
     supabaseAnonKey: process.env.NEXT_PUBLIC_MGS_SUPABASE_ANON_KEY || '',
+  },
+  triviabright: {
+    id: 'triviabright',
+    name: 'TriviaBright Sweeps',
+    url: 'https://yourdomain.com',
+    color: 'sky',
+    supabaseUrl: process.env.NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_URL || '',
+    supabaseAnonKey: process.env.NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_ANON_KEY || '',
   }
 }
 
@@ -65,7 +73,7 @@ export function getSweepsClient(siteId: SiteId): SupabaseClient {
   return client
 }
 
-export const SITE_IDS: SiteId[] = ['anytrivia', 'ccs', 'mgs']
+export const SITE_IDS: SiteId[] = ['anytrivia', 'ccs', 'mgs', 'triviabright']
 
 // Admin auth uses AnyTrivia Supabase
 export function getAdminClient(): SupabaseClient {

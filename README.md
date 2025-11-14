@@ -15,6 +15,7 @@ Centralized admin dashboard for managing giveaways, entries, and winners across 
 - AnyTrivia Sweeps
 - Cooking Curiosity Sweeps
 - MarketGrow Sweeps
+- TriviaBright Sweeps
 
 ## Setup
 
@@ -40,6 +41,10 @@ NEXT_PUBLIC_CCS_SUPABASE_ANON_KEY=your_ccs_key
 # MarketGrow Sweeps
 NEXT_PUBLIC_MGS_SUPABASE_URL=your_mgs_url
 NEXT_PUBLIC_MGS_SUPABASE_ANON_KEY=your_mgs_key
+
+# TriviaBright Sweeps
+NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_URL=your_triviabright_url
+NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_ANON_KEY=your_triviabright_key
 
 # Admin Auth (typically use AnyTrivia Supabase)
 NEXT_PUBLIC_ADMIN_SUPABASE_URL=your_admin_url

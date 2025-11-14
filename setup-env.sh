@@ -14,6 +14,10 @@ echo "# MarketGrow Sweeps" >> .env.local
 echo "NEXT_PUBLIC_MGS_SUPABASE_URL=" >> .env.local
 echo "NEXT_PUBLIC_MGS_SUPABASE_ANON_KEY=" >> .env.local
 echo "" >> .env.local
+echo "# TriviaBright Sweeps" >> .env.local
+echo "NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_URL=" >> .env.local
+echo "NEXT_PUBLIC_TRIVIABRIGHT_SUPABASE_ANON_KEY=" >> .env.local
+echo "" >> .env.local
 echo "# Admin Auth (use AnyTrivia Supabase)" >> .env.local
 echo "NEXT_PUBLIC_ADMIN_SUPABASE_URL=" >> .env.local
 echo "NEXT_PUBLIC_ADMIN_SUPABASE_ANON_KEY=" >> .env.local
